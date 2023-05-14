@@ -12,26 +12,40 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBOutlet var intensity: UISlider!
     @IBOutlet var imageView: UIImageView!
     
-    var currentImage: UIImage!
-    var context: CIContext!
-    var currentFilter: CIFilter!
+    @IBOutlet var changeFilter: UIButton!                                                                       
+    
+    var currentImage: UIImage!                                                                                  // import image
+    
+    
+    var context: CIContext!                                                                                     // coreImage that handles rendering
+    var currentFilter: CIFilter!                                                                                // stores users filter
+    {
+        didSet
+        {
+            let filter_name = currentFilter.name.replacingOccurrences(of: "CI", with: "")
+            changeFilter.setTitle(filter_name, for: .normal )
+        }//didSet
+    }//currentFilter
+                                                                                                                //      gets various inputs before an output
     
   
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Filter"
+        title = "Picture Filter"
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(importPicture))
-        
+                                                                                                                // add picture button
+    
         context = CIContext()
-        currentFilter = CIFilter(name: "CISepiaTone")
+        currentFilter = CIFilter(name: "CISepiaTone")                                                           //default filter
         
         
     }//viewDidLoad
 
     @objc func importPicture()
     {
-        let picker = UIImagePickerController()
+        let picker = UIImagePickerController()                                                                  // required for UIImagePickerController
+                                                                                                                //           UIImagePickerControllerDelegate and UINavigationControllerDelegate
         
         picker.allowsEditing = true
         picker.delegate = self
@@ -41,47 +55,65 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     
     
-    @IBAction func changeFilter(_ sender: UIButton)
+    @IBAction func changeFilter(_ sender: UIButton)                                                                                         //sender is called from UIButton
     {
-        let ac = UIAlertController(title: "Choose filter", message: nil, preferredStyle: .actionSheet)
-            ac.addAction(UIAlertAction(title: "CIBumpDistortion", style: .default, handler: setFilter))
-            ac.addAction(UIAlertAction(title: "CIGaussianBlur", style: .default, handler: setFilter))
-            ac.addAction(UIAlertAction(title: "CIPixellate", style: .default, handler: setFilter))
-            ac.addAction(UIAlertAction(title: "CISepiaTone", style: .default, handler: setFilter))
-            ac.addAction(UIAlertAction(title: "CITwirlDistortion", style: .default, handler: setFilter))
-            ac.addAction(UIAlertAction(title: "CIUnsharpMask", style: .default, handler: setFilter))
-            ac.addAction(UIAlertAction(title: "CIVignette", style: .default, handler: setFilter))
-            ac.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        let alert_controller = UIAlertController(title: "Choose filter", message: nil, preferredStyle: .actionSheet)                        // choose filter
+                                                                                                                                            // .actionSheet on Ipads require
+                                                                                                                                            //       popoverPresentationController
+        alert_controller.addAction(UIAlertAction(title: "CIBumpDistortion", style: .default, handler: setFilter))
+        alert_controller.addAction(UIAlertAction(title: "CIGaussianBlur", style: .default, handler: setFilter))
+        alert_controller.addAction(UIAlertAction(title: "CIPixellate", style: .default, handler: setFilter))
+        alert_controller.addAction(UIAlertAction(title: "CISepiaTone", style: .default, handler: setFilter))
+        alert_controller.addAction(UIAlertAction(title: "CITwirlDistortion", style: .default, handler: setFilter))
+        alert_controller.addAction(UIAlertAction(title: "CIUnsharpMask", style: .default, handler: setFilter))
+        alert_controller.addAction(UIAlertAction(title: "CIVignette", style: .default, handler: setFilter))
+        alert_controller.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         
-        if let popoverController = ac.popoverPresentationController
+        if let popoverController = alert_controller.popoverPresentationController                                                           // for ipad
         {
-            popoverController.sourceView = sender
-            popoverController.sourceRect = sender.bounds
+            popoverController.sourceView = sender                                                                                           // sender is the button being pressed to send the source
+            popoverController.sourceRect = sender.bounds                                                                                    // width and height of the button
         }
-            present(ac, animated: true)
+            present(alert_controller, animated: true)
         
     }//changeFilter
     
     func setFilter(action: UIAlertAction)
     {
-        guard currentImage != nil else {return}
+        guard currentImage != nil else {return}                                                                                             // currentImage must exist
+                                                                                                                                            // from user importing
         
-        guard let actionTile = action.title else {return}
+        guard let actionTile = action.title else {return}                                                                                   // actionTitle = filter selected from  alert_controller
         
-        currentFilter = CIFilter(name: actionTile)
+        currentFilter = CIFilter(name: actionTile)                                                                                          // selecting the CIFilter from the actionTitle
         
-        let beginImage = CIImage(image: currentImage)
+        let beginImage = CIImage(image: currentImage)                                                                                       // setting the user selected image to beginImage
+                                                                                                                                            // beginImage is set to CIImage
         
-        currentFilter.setValue(beginImage, forKey: kCIInputImageKey)
+        currentFilter.setValue(beginImage, forKey: kCIInputImageKey)                                                                        // set the filer to the beginImage
         
-        applyProcessing()
+        applyProcessing()                                                                                                                   // start processing the image
     }
     
-    @IBAction func save(_ sender: Any)
+    @IBAction func save(_ sender: UIButton)
     {
-        guard let image = imageView.image else { return }
+        guard let image = imageView.image else {
+            let alert_controller = UIAlertController(title: "No Image", message: "No Image was selected" , preferredStyle: .alert)
+            alert_controller.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert_controller, animated: true)
+            
+            return
+        }                                                       // make sure image exists
 
+        
         UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
+                                                                                                                // image = what image to save
+                                                                                                                // self = who to tell when finished
+                                                                                                                // #selector what to run to save the image
+        
+            
+        
+                                                                                                                
         
         
         
@@ -95,46 +127,52 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any])
     {
-        guard let image = info[.editedImage] as? UIImage else {return}
+        guard let image = info[.editedImage] as? UIImage else {return}                                              // find the picture to edit
         dismiss(animated: true)
-        currentImage = image
+        currentImage = image                                                                                        // modify the current picture
         
-        let beginImage = CIImage(image: currentImage)
-        currentFilter.setValue(beginImage, forKey: kCIInputImageKey)
-        applyProcessing()
+        let beginImage = CIImage(image: currentImage)                                                               // CoreImage of UIImage
+                                                                                                                    // how image should be transformed
+        currentFilter.setValue(beginImage, forKey: kCIInputImageKey)                                                //setting the coreImage to UIImage
+        
+        applyProcessing()                                                                                           //sets the filter
         
     }//imagePickerController
     
-    func applyProcessing()
+    func applyProcessing()                                                                                         //when first imported and slider is moved
     {
-        let inputKeys = currentFilter.inputKeys
+        let inputKeys = currentFilter.inputKeys                                                                     //reads out all filters
+                                                                                                                   // not all filters have intensity filters
         
-        if inputKeys.contains(kCIInputIntensityKey)
+        if inputKeys.contains(kCIInputIntensityKey)                                                                 // if filter has an intensity user slider
         {
-            currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)
-        }// contains
+            currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)                                 //reads in value of slider for the intensity
+        }// intenisty
         
-        if inputKeys.contains(kCIInputRadiusKey)
+        if inputKeys.contains(kCIInputRadiusKey)                                                                    // if filter requires a radius use slider
         {
-            currentFilter.setValue(intensity.value * 200, forKey: kCIInputRadiusKey)
+            currentFilter.setValue(intensity.value * 200, forKey: kCIInputRadiusKey)                                // slider goes from 0-1 multiple by 200 now its 0-200
             
         } // input radius
         
-        if inputKeys.contains(kCIInputScaleKey)
+        if inputKeys.contains(kCIInputScaleKey)                                                                     // filter has scale use slider
         {
-            currentFilter.setValue(intensity.value * 10, forKey: kCIInputScaleKey)
+            currentFilter.setValue(intensity.value * 10, forKey: kCIInputScaleKey)                                  // slider goes from 0-1 multiple by 10 now its 0-10
         }//scale
         
-        if inputKeys.contains(kCIInputCenterKey)
+        if inputKeys.contains(kCIInputCenterKey)                                                                    // filter center on image
         {
             currentFilter.setValue(CIVector(x: currentImage.size.width / 2, y: currentImage.size.height / 2), forKey:   kCIInputCenterKey)
+                                                                                                                    // .5 height and width
         }//center
         
-        guard let image = currentFilter.outputImage else { return }
+        
+        guard let image = currentFilter.outputImage else { return }                                     // cannot convert UIImage to CIIimage directly
+                                                                                                        // coreImage -> CGImage -> UIImage
 
-            if let cgimg = context.createCGImage(image, from: image.extent)
+            if let cgimg = context.createCGImage(image, from: image.extent)                             // creates CGImage nothing can be processed before the CG image is created
         {
-                let processedImage = UIImage(cgImage: cgimg)
+                let processedImage = UIImage(cgImage: cgimg)                                            //converts cgImage to UIImage
                 imageView.image = processedImage
             }// cgimg
         
@@ -143,19 +181,19 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer)
-    {
-        if let error = error
+    {                                                                                                   // when image has been saved
+        if let error = error                                                                            // tells the user why there is an error
         {
-            let ac = UIAlertController(title: "Save error", message: error.localizedDescription, preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "OK", style: .default))
+            let alert_controller = UIAlertController(title: "Save error", message: error.localizedDescription, preferredStyle: .alert)
+            alert_controller.addAction(UIAlertAction(title: "OK", style: .default))
         }//error
         
         else
         {
-            let message = "Your altered image has been saved to your photos."
-            let ac = UIAlertController(title: "Saved!", message: message , preferredStyle: .alert)
-            ac.addAction(UIAlertAction(title: "OK", style: .default))
-            present(ac, animated: true)
+            let message = "The custom image has been saved to your photos."
+            let alert_controller = UIAlertController(title: "Saved!", message: message , preferredStyle: .alert)
+            alert_controller.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert_controller, animated: true)
             
         } //end else
         
